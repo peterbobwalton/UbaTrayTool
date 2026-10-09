@@ -3,3 +3,6 @@ obj/
 TestOut/
 *.user
 .vs/
+Installer/publish/
+Installer/output/
+Installer/iconbuild/

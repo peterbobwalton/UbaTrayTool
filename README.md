@@ -14,6 +14,12 @@ The trace reader is a C# port of `UbaTraceReader.cpp` from Unreal Engine 5.8 (tr
 
 Open `UbaTrayTool.slnx` in Visual Studio 2026 (.NET 10, WinForms).
 
+## Installer
+
+Switch Visual Studio to **Release** and build the `Installer` project, or run `Installer\build.ps1`. Either way it publishes the app self-contained (win-x64) and compiles `Installer\UbaTrayTool.iss` with Inno Setup 6 into `Installer\output\UbaTrayToolSetup-<version>.exe`, then copies the installer to `Z:\Software\Claude\UbaTrayTool`. The version comes from `<Version>` in `UbaTrayTool.csproj`.
+
+The installer puts the app in `Program Files\UbaTrayTool`. It offers "Start with Windows" (ticked by default) and "Stop UBA from opening UbaVisualizer" (unticked by default), and closes a running copy before upgrading.
+
 ## Command line
 
 | Arguments | What it does |
