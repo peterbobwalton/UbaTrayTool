@@ -185,8 +185,9 @@ internal sealed class BuildPopup : Form
         int needed = (int)Math.Ceiling(_snapshot.RunningActions.Count / (double)cols);
         long now = Environment.TickCount64;
         int rows = _shownRows;
-        if (needed >= rows)
+        if (needed >= rows || !Visible)
         {
+            // Grow at once; while hidden there is nothing to jump about, so shrink at once too.
             rows = needed;
             _shrinkSince = -1;
         }
@@ -199,17 +200,15 @@ internal sealed class BuildPopup : Form
         }
         _shrinkTimer.Enabled = _shrinkSince >= 0;
 
-        bool resized = rows != _shownRows;
         _shownRows = rows;
         AssignSlots(_snapshot.RunningActions, rows * cols);
 
-        if (resized || !Visible)
-        {
-            if (Visible && !_sliding)
-                AnimateTo(TargetBounds());
-            else if (!Visible)
-                Size = TargetSize();
-        }
+        // Other sections (errors, machines, chart) can change the height too, so always re-target;
+        // AnimateTo does nothing when the size is already right.
+        if (Visible && !_sliding)
+            AnimateTo(TargetBounds());
+        else if (!Visible)
+            Size = TargetSize();
         Invalidate();
     }
 
@@ -496,6 +495,7 @@ internal sealed class BuildPopup : Form
         BuildState.Running => _theme.Accent,
         BuildState.Succeeded => _theme.Success,
         BuildState.Failed => _theme.Danger,
+        BuildState.Stopped => _theme.Warning,
         BuildState.Unreadable => _theme.Warning,
         _ => _theme.FaintText,
     };
@@ -577,6 +577,7 @@ internal sealed class BuildPopup : Form
             {
                 BuildState.Succeeded => "✓",
                 BuildState.Failed => "!",
+                BuildState.Stopped => "!",
                 BuildState.Idle => "–",
                 BuildState.Unreadable => "?",
                 _ => $"{fr * 100:0}%",
@@ -597,6 +598,7 @@ internal sealed class BuildPopup : Form
             BuildState.Running => "Building",
             BuildState.Succeeded => "Build succeeded",
             BuildState.Failed => "Build failed",
+            BuildState.Stopped => "Build stopped",
             BuildState.Unreadable => "Can't read this trace",
             _ => "Waiting for a build",
         };

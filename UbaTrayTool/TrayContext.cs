@@ -155,6 +155,7 @@ internal sealed class TrayContext : ApplicationContext
             {
                 BuildState.Succeeded => "Build succeeded",
                 BuildState.Failed => "Build failed",
+                BuildState.Stopped => "Build stopped",
                 _ => "Build ended",
             };
             string text = $"{Format.Words(s.Elapsed)}  ·  {Format.Count(s.Total > 0 ? s.Done : (uint)s.Finished)} actions";
@@ -162,7 +163,7 @@ internal sealed class TrayContext : ApplicationContext
                 text += $"  ·  {s.Errors} error{(s.Errors == 1 ? "" : "s")}";
             if (s.Failures.Count > 0)
                 text += $"\n{s.Failures[0].Description}";
-            _tray.ShowBalloonTip(5000, title, text, s.State == BuildState.Failed ? ToolTipIcon.Error : ToolTipIcon.Info);
+            _tray.ShowBalloonTip(5000, title, text, s.State switch { BuildState.Failed => ToolTipIcon.Error, BuildState.Stopped => ToolTipIcon.Warning, _ => ToolTipIcon.Info });
         }
         if (_popup.Visible && !_popup.Pinned)
         {
@@ -179,6 +180,7 @@ internal sealed class TrayContext : ApplicationContext
             BuildState.Running => s.Fraction is { } f ? $"UBA: building {f * 100:0}% ({s.Done}/{s.Total})" : $"UBA: building, {s.Running} running",
             BuildState.Succeeded => $"UBA: build succeeded in {Format.Words(s.Elapsed)}",
             BuildState.Failed => $"UBA: build failed, {s.Errors} errors",
+            BuildState.Stopped => $"UBA: build stopped after {Format.Words(s.Elapsed)}",
             BuildState.Unreadable => "UBA: can't read trace",
             _ => "UBA Tray Tool: waiting for a build",
         };

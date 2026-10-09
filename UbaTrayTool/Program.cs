@@ -22,6 +22,20 @@ internal static class Program
             File.WriteAllText(args[2], monitor.Describe());
             return;
         }
+        // --dump-dir folder out.txt : dump every .uba in a folder (parser regression check)
+        if (args.Length == 3 && args[0] == "--dump-dir")
+        {
+            var sb = new System.Text.StringBuilder();
+            foreach (string file in Directory.GetFiles(args[1], "*.uba").OrderBy(f => f))
+            {
+                using var monitor = new TraceMonitor("UbaTrayTool.Dump");
+                monitor.OpenFile(file);
+                sb.AppendLine($"==== {Path.GetFileName(file)}  state {monitor.Current.State}");
+                sb.AppendLine(monitor.Describe());
+            }
+            File.WriteAllText(args[2], sb.ToString());
+            return;
+        }
         // --render trace.uba out.png [light|dark] [fraction]  (fraction < 1 previews a running build)
         if (args.Length >= 3 && args[0] == "--render")
         {
@@ -86,6 +100,7 @@ internal static class Program
         if (!isFirst)
             return;
 
-        Application.Run(new TrayContext(openFile));
+        using var context = new TrayContext(openFile);
+        Application.Run(context);
     }
 }

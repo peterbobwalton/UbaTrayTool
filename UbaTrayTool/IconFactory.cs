@@ -97,6 +97,7 @@ internal static class IconFactory
         {
             BuildState.Succeeded => Green,
             BuildState.Failed => Red,
+            BuildState.Stopped => Amber,
             BuildState.Unreadable => Amber,
             _ => null,
         };

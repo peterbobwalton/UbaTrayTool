@@ -14,13 +14,15 @@ internal sealed class TraceProcess
     public uint ExitCode = uint.MaxValue;
     public bool IsRemote;
     public bool IsRacing;
+    public bool IsIdle;                 // a reused process host waiting for its next action
+    public bool CutOff;                 // still running when the trace ended (build cancelled or host gone)
     public string? ReturnedReason;
     public string? KillReason;
     public ProcessStatsSummary Stats;
     public List<(byte Type, string Text)>? LogLines;
 
     public bool IsRunning => double.IsNaN(Stop);
-    public bool Failed => !IsRunning && Kind == TraceProcessKind.Normal && ExitCode != 0 && ReturnedReason is null;
+    public bool Failed => !IsRunning && Kind == TraceProcessKind.Normal && !CutOff && !IsIdle && ExitCode != 0 && ReturnedReason is null;
 }
 
 internal sealed class TraceSession
@@ -89,7 +91,8 @@ internal sealed class TraceModel
     public int CacheMisses;
     public List<List<string>> CacheSummaries = [];
 
-    public TraceProcess? LastFailure;
+    /// <summary>Real work (not idle hosts) was still running when the trace ended: the build was stopped.</summary>
+    public bool StoppedEarly;
 
     public int TotalActive;     // normal processes only
     public int TotalExited;

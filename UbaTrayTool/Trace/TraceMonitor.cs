@@ -30,6 +30,7 @@ internal sealed class TraceMonitor : IDisposable
     private bool _isLive;
     private bool _previewRunning;
     private string? _visualizerPath;
+    private bool _visualizerSearched;
     private long _sequence;
     private bool _disposed;
 
@@ -175,7 +176,8 @@ internal sealed class TraceMonitor : IDisposable
         _filePath = null;
         _isLive = true;
         _visualizerPath = null;
-        PollLive();
+        _visualizerSearched = false;
+        // Announce the build before reading it, so BuildStarted always comes before BuildEnded.
         BuildSnapshot started = Publish();
         BuildStarted?.Invoke(started);
         return true;
@@ -200,7 +202,12 @@ internal sealed class TraceMonitor : IDisposable
         if (_parser.Model.HostProcessId != 0)
         {
             _live.TrackHost(_parser.Model.HostProcessId);
-            _visualizerPath ??= VisualizerLocator.FromHost(_live.HostImagePath());
+            if (!_visualizerSearched)
+            {
+                // Walks folders, so only once per build.
+                _visualizerSearched = true;
+                _visualizerPath = VisualizerLocator.FromHost(_live.HostImagePath());
+            }
         }
 
         bool ended = hostExited || _parser.Model.HadSummary || _parser.Error is not null;
@@ -265,7 +272,7 @@ internal sealed class TraceMonitor : IDisposable
         }
 
         var runningActions = m.Active.Values
-            .Where(p => p.Kind != TraceProcessKind.CacheFetch)
+            .Where(p => p.Kind != TraceProcessKind.CacheFetch && !p.IsIdle)
             .OrderBy(p => p.Start)
             .Take(MaxRunningRows)
             .Select(p => new RunningAction(p.Id, p.Description, Math.Max(0, now - p.Start), p.IsRemote, SessionName(p), p.IsRacing))
@@ -291,10 +298,12 @@ internal sealed class TraceMonitor : IDisposable
             state = BuildState.Running;
         else if (m.ProgressErrors > 0 || failureCount > 0)
             state = BuildState.Failed;
+        else if (m.StoppedEarly)
+            state = BuildState.Stopped;
         else
             state = BuildState.Succeeded;
 
-        int remoteRunning = m.Active.Values.Count(p => p.IsRemote && p.Kind == TraceProcessKind.Normal);
+        int remoteRunning = m.Active.Values.Count(p => p.IsRemote && p.Kind == TraceProcessKind.Normal && !p.IsIdle);
 
         return new BuildSnapshot
         {

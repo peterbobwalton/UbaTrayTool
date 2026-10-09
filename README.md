@@ -27,6 +27,7 @@ The installer puts the app in `Program Files\UbaTrayTool`. It offers "Start with
 | *(none)* | Run in the tray |
 | `trace.uba` | Run and open a saved trace |
 | `--dump trace.uba out.txt` | Write a text summary of a trace |
+| `--dump-dir folder out.txt` | Summarise every `.uba` in a folder (parser check) |
 | `--render trace.uba out.png [light\|dark] [fraction]` | Render the popup for a trace |
 | `--render-demo outDir` | Render the popup with made-up data |
 | `--export-icon app.ico` | Write the app icon |

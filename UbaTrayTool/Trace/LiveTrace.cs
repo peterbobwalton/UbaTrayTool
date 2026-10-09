@@ -99,6 +99,8 @@ internal sealed unsafe class NamedTraceMapping : IDisposable
     private IntPtr _mapping;
     private byte* _view;
     private IntPtr _host;
+    private uint _hostPid;
+    private long _nextPidCheck;
 
     public string Name { get; }
 
@@ -149,12 +151,34 @@ internal sealed unsafe class NamedTraceMapping : IDisposable
     {
         if (_host != IntPtr.Zero || pid == 0)
             return;
+        _hostPid = pid;
         _host = Native.OpenProcess(Native.SYNCHRONIZE | Native.PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+        if (_host == IntPtr.Zero)
+            _host = Native.OpenProcess(Native.SYNCHRONIZE, false, pid);
     }
 
-    /// <summary>True once the host process has exited (or can't be opened).</summary>
-    public bool HostExited =>
-        _host != IntPtr.Zero && Native.WaitForSingleObject(_host, 0) == Native.WAIT_OBJECT_0;
+    /// <summary>True once the host process has exited.</summary>
+    public bool HostExited
+    {
+        get
+        {
+            if (_host != IntPtr.Zero)
+                return Native.WaitForSingleObject(_host, 0) == Native.WAIT_OBJECT_0;
+            if (_hostPid == 0 || Environment.TickCount64 < _nextPidCheck)
+                return false;
+            // No handle (no access to the host): fall back to checking the pid still exists.
+            _nextPidCheck = Environment.TickCount64 + 2000;
+            try
+            {
+                using var process = System.Diagnostics.Process.GetProcessById((int)_hostPid);
+                return false;
+            }
+            catch (ArgumentException)
+            {
+                return true;
+            }
+        }
+    }
 
     public string? HostImagePath()
     {

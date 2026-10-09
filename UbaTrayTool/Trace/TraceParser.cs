@@ -53,7 +53,7 @@ internal sealed class TraceParser
         {
             if (!_headerRead)
             {
-                if (length < MinHeaderBytes)
+                if (length < MinHeaderBytes || !HeaderComplete(data, length))
                     return false;
                 var header = new TraceByteReader(data, 0, length);
                 header.ReadU32();                          // published size
@@ -101,7 +101,7 @@ internal sealed class TraceParser
         {
             Error = ex.Message;
         }
-        catch (Exception ex) when (ex is ArgumentException or IndexOutOfRangeException or KeyNotFoundException or InvalidOperationException)
+        catch (Exception ex) when (ex is not TraceEndOfDataException and not OutOfMemoryException)
         {
             Error = $"Could not parse trace at byte {_position}: {ex.Message}";
         }
@@ -112,7 +112,12 @@ internal sealed class TraceParser
     public void StopAllActive()
     {
         foreach (TraceProcess p in Model.Active.Values)
+        {
             p.Stop = Model.LastEventTime;
+            p.CutOff = true;
+            if (p.Kind == TraceProcessKind.Normal && !p.IsIdle)
+                Model.StoppedEarly = true;
+        }
         Model.Active.Clear();
         Model.TotalActive = 0;
         foreach (TraceSession s in Model.Sessions)
@@ -281,8 +286,6 @@ internal sealed class TraceParser
                     p.ExitCode = exitCode;
                     p.Stats = stats;
                     p.LogLines = lines;
-                    if (p.Failed)
-                        Model.LastFailure = p;
                 }
                 break;
             }
@@ -311,6 +314,7 @@ internal sealed class TraceParser
                     Session = p.Session,
                     Kind = TraceProcessKind.Normal,
                     Description = reason == "IDLE" ? "(idle)" : reason,
+                    IsIdle = reason == "IDLE",
                     Start = time,
                     IsRemote = p.IsRemote,
                 };
@@ -612,6 +616,23 @@ internal sealed class TraceParser
             case TraceType.StringAdd:
             default:
                 throw new TraceFormatException($"Unknown trace entry type {(byte)type} (newer UBA than UbaTrayTool?).");
+        }
+        return true;
+    }
+
+    /// <summary>True once the whole header (3 x u32 + 3 x 7-bit values) has been published.</summary>
+    private static bool HeaderComplete(byte[] data, int length)
+    {
+        int pos = 12;
+        for (int value = 0; value < 3; value++)
+        {
+            while (true)
+            {
+                if (pos >= length)
+                    return false;
+                if ((data[pos++] & 0x80) == 0)
+                    break;
+            }
         }
         return true;
     }

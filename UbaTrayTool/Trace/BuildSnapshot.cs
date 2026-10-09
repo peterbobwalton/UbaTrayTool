@@ -1,6 +1,6 @@
 namespace UbaTrayTool.Trace;
 
-internal enum BuildState { Idle, Running, Succeeded, Failed, Unreadable }
+internal enum BuildState { Idle, Running, Succeeded, Failed, Stopped, Unreadable }
 
 internal sealed record RunningAction(uint Id, string Description, double Seconds, bool Remote, string Where, bool Racing);
 
