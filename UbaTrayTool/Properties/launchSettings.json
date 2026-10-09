@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "UbaTrayTool": {
+      "commandName": "Project"
+    },
+    "Render demo": {
+      "commandName": "Project",
+      "commandLineArgs": "--render-demo \"$(ProjectDir)TestOut\""
+    }
+  }
+}
