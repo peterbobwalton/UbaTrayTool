@@ -123,7 +123,13 @@ internal sealed class BuildPopup : Form
         _theme.ApplyWindowChrome(Handle);
     }
 
-    private float Dpi => DeviceDpi / 96f;
+    /// <summary>
+    /// Overall size of the popup relative to the 96-dpi layout constants. 0.75 keeps it compact on
+    /// machines with lots of processors (one card each); everything — fonts, cards, padding — scales together.
+    /// </summary>
+    private const float UiScale = 0.75f;
+
+    private float Dpi => DeviceDpi / 96f * UiScale;
     private int S(float v) => (int)Math.Round(v * Dpi);
 
     // ---- Theme ------------------------------------------------------------------------------
@@ -282,7 +288,10 @@ internal sealed class BuildPopup : Form
             Rectangle area = WorkArea();
             if (_columns > 0 && area == _columnsArea && DeviceDpi == _columnsDpi)
                 return _columns;
-            int fitRows = Math.Max(4, (int)((area.Height * GridScreenShare + S(CardGap)) / (S(CardHeight) + S(CardGap))));
+            // Worked out at full size, so UiScale shrinks the whole popup (same columns, smaller
+            // cards) instead of trading width for an even taller grid.
+            float fullScale = DeviceDpi / 96f;
+            int fitRows = Math.Max(4, (int)((area.Height * GridScreenShare + CardGap * fullScale) / ((CardHeight + CardGap) * fullScale)));
             _columns = Math.Max(1, (int)Math.Ceiling(TraceMonitor.MaxRunningRows / (double)fitRows));
             _columnsArea = area;
             _columnsDpi = DeviceDpi;

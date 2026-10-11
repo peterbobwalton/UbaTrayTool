@@ -11,7 +11,7 @@
     <ApplicationVisualStyles>true</ApplicationVisualStyles>
     <AssemblyTitle>UBA Tray Tool</AssemblyTitle>
     <Product>UbaTrayTool</Product>
-    <Version>0.1.1</Version>
+    <Version>0.1.2</Version>
   </PropertyGroup>
 
   <!-- app.ico is generated from IconFactory by running the exe with the export-icon switch. -->
