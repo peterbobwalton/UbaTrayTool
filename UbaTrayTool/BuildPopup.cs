@@ -63,6 +63,7 @@ internal sealed class BuildPopup : Form
         AutoScaleMode = AutoScaleMode.None;
         ShowInTaskbar = false;
         Text = "UbaTrayTool";
+        PopupZOrder.KeepOnTop(this);   // stay above the desktop/taskbar when pinned
         BackColor = _theme.Background;
         SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint |
                  ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
