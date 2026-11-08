@@ -1,12 +1,12 @@
 # UbaTrayTool — handover
 
-_Last updated 2026-10-11._
+_Last updated 2026-11-08._
 
 ## State
 
-- Version **0.1.2**. Builds clean in VS 2026 (0 errors, 0 warnings). `main` pushed to
+- Version **0.1.3**. Builds clean in VS 2026 (0 errors, 0 warnings). `main` pushed to
   https://github.com/peterbobwalton/UbaTrayTool.
-- Installer `UbaTrayToolSetup-0.1.2.exe` in `Z:\Software\Claude\UbaTrayTool` (and `Installer\output`).
+- Installer `UbaTrayToolSetup-0.1.3.exe` in `Z:\Software\Claude\UbaTrayTool` (and `Installer\output`).
   Pete is running an installed copy; reinstall to pick up new builds.
 - Pete has used it on live builds and says it works very well. The 0.1.1 review fixes and the 0.1.2
   size change were checked with `--dump-dir` and `--render-demo` but not yet on a cancelled build or with elevated UBT.

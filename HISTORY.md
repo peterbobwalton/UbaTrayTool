@@ -34,3 +34,9 @@ Pete: "works very well". Review fixes:
 - Popup too big on many-core PCs. Added `UiScale = 0.75`; column count still computed at full size so
   the popup shrinks in both directions (64 lanes: 1210×1154 → 844×852).
 - Git now done through Pete's git MCP server; pushed all pending commits.
+
+## 2026-11-08 — pinned popup z-order (0.1.3)
+
+- Pinned popup stays above the desktop and taskbar (Show desktop / Win+D no longer hides it), using the
+  same `PopupZOrder` helper as TrayTools; it doesn't raise itself over tray menus.
+- Installer 0.1.3 built and copied to `Z:\Software\Claude\UbaTrayTool`.
