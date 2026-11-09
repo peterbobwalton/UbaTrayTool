@@ -63,7 +63,7 @@ internal sealed class BuildPopup : Form
         AutoScaleMode = AutoScaleMode.None;
         ShowInTaskbar = false;
         Text = "UbaTrayTool";
-        PopupZOrder.KeepOnTop(this);   // stay above the desktop/taskbar when pinned
+        PopupZOrder.KeepOnTop(this, () => _sliding);   // stay above the desktop/taskbar when pinned
         BackColor = _theme.Background;
         SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint |
                  ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
@@ -271,7 +271,46 @@ internal sealed class BuildPopup : Form
         Screen screen = taskbar != IntPtr.Zero && GetWindowRect(taskbar, out NativeRect r)
             ? Screen.FromRectangle(Rectangle.FromLTRB(r.Left, r.Top, r.Right, r.Bottom))
             : Screen.PrimaryScreen ?? Screen.AllScreens[0];
-        return screen.WorkingArea;
+        return LayoutArea(screen);
+    }
+
+    /// <summary>
+    /// The screen's working area, minus the taskbar when it auto-hides: an auto-hiding taskbar
+    /// reserves no space, so the popup would otherwise sit on top of the tray icons.
+    /// </summary>
+    private static Rectangle LayoutArea(Screen screen)
+    {
+        Rectangle area = screen.WorkingArea;
+        var data = new AppBarData { Size = (uint)Marshal.SizeOf<AppBarData>() };
+        if (((long)SHAppBarMessage(AbmGetState, ref data) & AbsAutoHide) == 0 ||
+            SHAppBarMessage(AbmGetTaskbarPos, ref data) == IntPtr.Zero)
+            return area;
+
+        Rectangle bounds = screen.Bounds;
+        int thickness = data.Edge is AbeTop or AbeBottom
+            ? data.Rect.Bottom - data.Rect.Top
+            : data.Rect.Right - data.Rect.Left;
+        if (thickness <= 0 || thickness >= Math.Min(area.Width, area.Height) / 2)
+            return area;
+
+        switch (data.Edge)
+        {
+            case AbeBottom when area.Bottom == bounds.Bottom:
+                area.Height -= thickness;
+                break;
+            case AbeTop when area.Top == bounds.Top:
+                area.Y += thickness;
+                area.Height -= thickness;
+                break;
+            case AbeRight when area.Right == bounds.Right:
+                area.Width -= thickness;
+                break;
+            case AbeLeft when area.Left == bounds.Left:
+                area.X += thickness;
+                area.Width -= thickness;
+                break;
+        }
+        return area;
     }
 
     private int _columns;
@@ -925,6 +964,28 @@ internal sealed class BuildPopup : Form
     {
         public int Left, Top, Right, Bottom;
     }
+
+    private const uint AbmGetState = 4;
+    private const uint AbmGetTaskbarPos = 5;
+    private const long AbsAutoHide = 1;
+    private const uint AbeLeft = 0;
+    private const uint AbeTop = 1;
+    private const uint AbeRight = 2;
+    private const uint AbeBottom = 3;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct AppBarData
+    {
+        public uint Size;
+        public IntPtr Hwnd;
+        public uint CallbackMessage;
+        public uint Edge;
+        public NativeRect Rect;
+        public IntPtr LParam;
+    }
+
+    [DllImport("shell32.dll")]
+    private static extern IntPtr SHAppBarMessage(uint message, ref AppBarData data);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern IntPtr FindWindow(string className, string? windowName);

@@ -16,15 +16,17 @@ internal static class PopupZOrder
 {
     private const int ReassertMs = 500;
 
-    private static readonly List<Form> Forms = [];
+    private static readonly List<(Form Form, Func<bool>? IsClosing)> Forms = [];
     private static WinEventProc? _hookProc;     // held so the delegate isn't collected
     private static IntPtr _hook;
 
     /// <summary>Call once from the popup's constructor.</summary>
-    public static void KeepOnTop(Form form)
+    /// <param name="isClosing">True while the popup slides away: it drops behind the taskbar as it
+    /// goes and isn't pulled back in front.</param>
+    public static void KeepOnTop(Form form, Func<bool>? isClosing = null)
     {
         var timer = new System.Windows.Forms.Timer { Interval = ReassertMs };
-        timer.Tick += (_, _) => RaiseIfCovered(form);
+        timer.Tick += (_, _) => RaiseIfCovered(form, isClosing);
         form.VisibleChanged += (_, _) =>
         {
             if (form.Visible)
@@ -40,9 +42,9 @@ internal static class PopupZOrder
         form.Disposed += (_, _) =>
         {
             timer.Dispose();
-            Forms.Remove(form);
+            Forms.RemoveAll(f => f.Form == form);
         };
-        Forms.Add(form);
+        Forms.Add((form, isClosing));
         InstallHook();
     }
 
@@ -56,9 +58,9 @@ internal static class PopupZOrder
             SwpNoMove | SwpNoSize | SwpNoActivate | SwpNoOwnerZOrder);
     }
 
-    private static void RaiseIfCovered(Form form)
+    private static void RaiseIfCovered(Form form, Func<bool>? isClosing)
     {
-        if (CanRaise(form) && IsCoveredByShell(form.Handle))
+        if (CanRaise(form) && isClosing?.Invoke() != true && IsCoveredByShell(form.Handle))
             BringToTop(form);
     }
 
@@ -100,8 +102,8 @@ internal static class PopupZOrder
         _hookProc = (_, _, _, _, _, _, _) =>
         {
             // Out-of-context hook: runs on this (UI) thread through its message loop.
-            foreach (Form form in Forms.ToArray())
-                RaiseIfCovered(form);
+            foreach ((Form form, Func<bool>? isClosing) in Forms.ToArray())
+                RaiseIfCovered(form, isClosing);
         };
         _hook = SetWinEventHook(EventSystemForeground, EventSystemForeground, IntPtr.Zero, _hookProc,
             0, 0, WinEventOutOfContext | WinEventSkipOwnProcess);
